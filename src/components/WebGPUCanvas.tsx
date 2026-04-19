@@ -8,22 +8,18 @@ export default function WebGPUCanvas() {
     let isMounted = true;
     const app = new PIXI.Application();
 
-    const init = async () => {
-      // fallback to basic canvas init safely
-      await app.init({
-        background: '#1099bb',
-        preference: 'webgpu',
-      });
+    // 1. The Async Lock: Store the promise returned by app.init()
+    const initPromise = app.init({
+      background: '#1099bb',
+      preference: 'webgpu',
+    }).catch((e) => {
+      // Ignore initial render rejection in test environments
+      console.error(e);
+    });
 
-      if (!isMounted) {
-        // Safely destroy if component unmounted while waiting for PIXI init
-        try {
-          app.destroy(true, { children: true, texture: true, baseTexture: true });
-        } catch (e) {
-          // ignore
-        }
-        return;
-      }
+    initPromise.then(() => {
+      // 3. DOM Safety: Only append if the component is still mounted after resolution
+      if (!isMounted) return;
 
       if (containerRef.current) {
         containerRef.current.appendChild(app.canvas);
@@ -33,18 +29,18 @@ export default function WebGPUCanvas() {
       rect.rect(100, 100, 200, 150);
       rect.fill({ color: 0x0000ff });
       app.stage.addChild(rect);
-    };
-
-    init().catch(console.error);
+    }).catch(console.error);
 
     return () => {
       isMounted = false;
-      // Clean up the application securely to avoid WebGL context leaks
-      try {
-        app.destroy(true, { children: true, texture: true, baseTexture: true });
-      } catch (e) {
-        // Ignore destroy error in tests
-      }
+      // 2. The Deferred Destruction: Await initPromise before calling destroy
+      initPromise.then(() => {
+        try {
+          app.destroy(true, { children: true, texture: true, baseTexture: true });
+        } catch (e) {
+          // Ignore destroy error in tests
+        }
+      });
     };
   }, []);
 
