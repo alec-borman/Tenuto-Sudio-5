@@ -5,7 +5,7 @@ export default function WebGPUCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Need to configure options without 'resizeTo' to prevent JSDOM errors, or mock safely
+    let isMounted = true;
     const app = new PIXI.Application();
 
     const init = async () => {
@@ -14,6 +14,16 @@ export default function WebGPUCanvas() {
         background: '#1099bb',
         preference: 'webgpu',
       });
+
+      if (!isMounted) {
+        // Safely destroy if component unmounted while waiting for PIXI init
+        try {
+          app.destroy(true, { children: true, texture: true, baseTexture: true });
+        } catch (e) {
+          // ignore
+        }
+        return;
+      }
 
       if (containerRef.current) {
         containerRef.current.appendChild(app.canvas);
@@ -28,6 +38,7 @@ export default function WebGPUCanvas() {
     init().catch(console.error);
 
     return () => {
+      isMounted = false;
       // Clean up the application securely to avoid WebGL context leaks
       try {
         app.destroy(true, { children: true, texture: true, baseTexture: true });

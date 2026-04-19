@@ -4,7 +4,12 @@
  */
 
 import SplitWorkspace from './components/SplitWorkspace';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
-  return <SplitWorkspace />;
+  return (
+    <ErrorBoundary>
+      <SplitWorkspace />
+    </ErrorBoundary>
+  );
 }
