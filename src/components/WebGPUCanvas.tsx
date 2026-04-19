@@ -1,6 +1,22 @@
 import React, { useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 
+export function calculateProjectionCoordinates(
+  event: any,
+  startTime: { numerator: number, denominator: number },
+  zScale: number,
+  rowHeight: number
+) {
+  const startFraction = startTime.numerator / startTime.denominator;
+  const durationFraction = event.duration.numerator / event.duration.denominator;
+
+  return {
+    x: startFraction * zScale,
+    y: (127 - event.pitch.midi) * rowHeight,
+    width: durationFraction * zScale,
+  };
+}
+
 export default function WebGPUCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
 
