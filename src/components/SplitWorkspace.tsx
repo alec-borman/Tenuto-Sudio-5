@@ -26,7 +26,38 @@ export default function SplitWorkspace() {
   const orchestrator = useMemo(() => new LanceDBOrchestrator(), []);
   const commandManager = useMemo(() => new CommandManager(), []);
   const audioManager = useMemo(() => new AudioContextManager(), []);
-  const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(new ASTSerializer(), new TCALManager(), audioManager), [audioManager]);
+  const serializer = useMemo(() => new ASTSerializer(), []);
+  const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(serializer, new TCALManager(), audioManager), [audioManager, serializer]);
+
+  const [compiledEvents, setCompiledEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const eventsSequence = sourceCode.replace(/^[a-zA-Z_]+:\s*/, '').trim();
+      if (!eventsSequence) {
+        setCompiledEvents([]);
+        return;
+      }
+
+      const tokens = eventsSequence.split(/\s+/).filter(Boolean);
+      let cumulativeFraction = 0.0;
+
+      const parsedEvents = tokens.map(token => {
+        const event = serializer.parseToken(token);
+        const eWithTime = {
+          ...event,
+          startTime: { numerator: cumulativeFraction, denominator: 1 },
+          rawToken: token
+        };
+        cumulativeFraction += (event.duration.numerator / event.duration.denominator);
+        return eWithTime;
+      });
+
+      setCompiledEvents(parsedEvents);
+    } catch (e) {
+      // Graceful Degradation: Silently catch partial syntaxes
+    }
+  }, [sourceCode, serializer]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -96,7 +127,7 @@ export default function SplitWorkspace() {
             <Panel minSize={30}>
               <div className="h-full w-full relative flex">
                 <div className="flex-grow h-full relative">
-                  <WebGPUCanvas onSelect={setActiveSelection} />
+                  <WebGPUCanvas onSelect={setActiveSelection} events={compiledEvents} />
                 </div>
                 <div className="flex flex-col h-full shrink-0 shadow-lg z-10 w-64 border-l border-slate-700 bg-slate-900">
                   <Inspector selection={activeSelection} onUpdate={() => {}} />
