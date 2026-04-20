@@ -5,6 +5,21 @@ import SplitWorkspace from '../src/components/SplitWorkspace';
 import { CommandManager } from '../src/commands/CommandManager';
 import '@testing-library/jest-dom';
 
+// Mock Monaco Editor for deterministic JSDOM testing to avoid Web Worker crashes
+vi.mock('@monaco-editor/react', () => {
+  return {
+    default: ({ value, onChange, defaultLanguage }: any) => (
+      <textarea
+        data-testid="monaco-mock"
+        aria-label="Tenuto Source Editor"
+        data-language={defaultLanguage}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    )
+  };
+});
+
 // Mock surrounding heavy UI components to isolate the Code Editor binding
 vi.mock('../src/components/WebGPUCanvas', () => ({ default: () => <div>Canvas</div> }));
 vi.mock('../src/components/Inspector', () => ({ default: () => <div>Inspector</div> }));

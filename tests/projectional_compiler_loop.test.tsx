@@ -5,6 +5,21 @@ import SplitWorkspace from '../src/components/SplitWorkspace';
 import { ASTSerializer } from '../src/parser/ASTSerializer';
 import '@testing-library/jest-dom';
 
+// Mock Monaco Editor for deterministic JSDOM testing to avoid Web Worker crashes
+vi.mock('@monaco-editor/react', () => {
+  return {
+    default: ({ value, onChange, defaultLanguage }: any) => (
+      <textarea
+        data-testid="monaco-mock"
+        aria-label="Tenuto Source Editor"
+        data-language={defaultLanguage}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    )
+  };
+});
+
 // Mock the heavy components
 vi.mock('../src/components/WebGPUCanvas', () => ({
   default: ({ events }: any) => (

@@ -1,4 +1,5 @@
 import React from 'react';
+import Editor from '@monaco-editor/react';
 
 interface CodeEditorProps {
   code: string;
@@ -7,12 +8,25 @@ interface CodeEditorProps {
 
 export default function CodeEditor({ code, onChange }: CodeEditorProps) {
   return (
-    <textarea
-      aria-label="Tenuto Source Editor"
+    <Editor
+      height="100%"
+      defaultLanguage="tenuto"
+      theme="vs-dark"
       value={code}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full h-full bg-slate-900 text-slate-200 font-mono text-sm p-4 outline-none border-none resize-none"
-      spellCheck={false}
+      onChange={(val) => {
+        if (val !== undefined) {
+          onChange(val);
+        }
+      }}
+      options={{
+        minimap: { enabled: false },
+        wordWrap: 'on',
+        lineNumbers: 'on',
+        scrollBeyondLastLine: false,
+        fontSize: 14,
+        fontFamily: "'JetBrains Mono', monospace",
+        padding: { top: 16 }
+      }}
     />
   );
 }

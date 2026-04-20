@@ -6,6 +6,21 @@ import App from '../src/App';
 import WebGPUCanvas from '../src/components/WebGPUCanvas';
 import ErrorBoundary from '../src/components/ErrorBoundary';
 
+// Mock Monaco Editor for deterministic JSDOM testing
+vi.mock('@monaco-editor/react', () => {
+  return {
+    default: ({ value, onChange, defaultLanguage }: any) => (
+      <textarea
+        data-testid="monaco-mock"
+        aria-label="Tenuto Source Editor"
+        data-language={defaultLanguage}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    )
+  };
+});
+
 // Mock ResizeObserver for react-resizable-panels
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
