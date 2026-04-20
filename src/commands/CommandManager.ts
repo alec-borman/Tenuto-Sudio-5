@@ -1,0 +1,39 @@
+export interface MutationCommand {
+  execute(): void;
+  undo(): void;
+}
+
+export class CommandManager {
+  private undoStack: MutationCommand[] = [];
+  private redoStack: MutationCommand[] = [];
+
+  public executeCommand(command: MutationCommand): void {
+    command.execute();
+    this.undoStack.push(command);
+    this.redoStack = [];
+  }
+
+  public undo(): void {
+    const command = this.undoStack.pop();
+    if (command) {
+      command.undo();
+      this.redoStack.push(command);
+    }
+  }
+
+  public redo(): void {
+    const command = this.redoStack.pop();
+    if (command) {
+      command.execute();
+      this.undoStack.push(command);
+    }
+  }
+
+  public getUndoDepth(): number {
+    return this.undoStack.length;
+  }
+
+  public getRedoDepth(): number {
+    return this.redoStack.length;
+  }
+}
