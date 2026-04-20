@@ -1,16 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import WebGPUCanvas from './WebGPUCanvas';
 import Inspector from './Inspector';
 
 export default function SplitWorkspace() {
-  const mockSelection = {
-    type: 'PitchLit',
-    duration: '1/4',
-    velocity: 80,
-    line: 1,
-    col: 5
-  };
+  const [activeSelection, setActiveSelection] = useState<any>(null);
 
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden">
@@ -28,9 +22,9 @@ export default function SplitWorkspace() {
         <Panel minSize={30}>
           <div className="h-full w-full relative flex">
             <div className="flex-grow h-full relative">
-              <WebGPUCanvas />
+              <WebGPUCanvas onSelect={setActiveSelection} />
             </div>
-            <Inspector selection={mockSelection} onUpdate={() => {}} />
+            <Inspector selection={activeSelection} onUpdate={() => {}} />
           </div>
         </Panel>
       </PanelGroup>

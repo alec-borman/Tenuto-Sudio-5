@@ -17,14 +17,16 @@ export function calculateProjectionCoordinates(
   };
 }
 
-export default function WebGPUCanvas({ events = [], onMutation }: { events?: any[], onMutation?: (eventData: any, deltaX: number) => void }) {
+export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { events?: any[], onMutation?: (eventData: any, deltaX: number) => void, onSelect?: (nodeData: any) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PIXI.Application | null>(null);
   const onMutationRef = useRef(onMutation);
+  const onSelectRef = useRef(onSelect);
 
   useEffect(() => {
     onMutationRef.current = onMutation;
-  }, [onMutation]);
+    onSelectRef.current = onSelect;
+  }, [onMutation, onSelect]);
 
   useEffect(() => {
     let isMounted = true;
@@ -108,6 +110,12 @@ export default function WebGPUCanvas({ events = [], onMutation }: { events?: any
         const deltaX = e.global.x - startX;
         if (deltaX !== 0 && onMutationRef.current) {
           onMutationRef.current(event, deltaX);
+        }
+      });
+
+      g.on('pointertap', (e: PIXI.FederatedPointerEvent) => {
+        if (onSelectRef.current) {
+          onSelectRef.current(event);
         }
       });
 
