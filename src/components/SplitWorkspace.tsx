@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import WebGPUCanvas from './WebGPUCanvas';
 import Inspector from './Inspector';
 import Mixer, { ASTState } from './Mixer';
+import AICopilot from './AICopilot';
+import { LanceDBOrchestrator } from '../ai/LanceDBOrchestrator';
 
 export default function SplitWorkspace() {
   const [activeSelection, setActiveSelection] = useState<any>(null);
@@ -10,6 +12,8 @@ export default function SplitWorkspace() {
     tracks: [{ id: 'vox', volume: 100, fx: [] }],
     meta: { sidechain: null }
   });
+  
+  const orchestrator = useMemo(() => new LanceDBOrchestrator(), []);
 
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden">
@@ -31,7 +35,14 @@ export default function SplitWorkspace() {
                 <div className="flex-grow h-full relative">
                   <WebGPUCanvas onSelect={setActiveSelection} />
                 </div>
-                <Inspector selection={activeSelection} onUpdate={() => {}} />
+                <div className="flex flex-col h-full shrink-0 shadow-lg z-10 w-64 border-l border-slate-700 bg-slate-900">
+                  <Inspector selection={activeSelection} onUpdate={() => {}} />
+                  <AICopilot 
+                    activeAST={activeSelection ? `${activeSelection.type}:${activeSelection.duration}` : "empty_state"}
+                    orchestrator={orchestrator}
+                    onCommit={(cmd) => { console.log('Committed ghost AST command:', cmd.payload); }}
+                  />
+                </div>
               </div>
             </Panel>
             <PanelResizeHandle className="h-1 bg-slate-800 hover:bg-slate-700 transition-colors cursor-row-resize z-10" />
