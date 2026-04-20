@@ -8,6 +8,7 @@ const mockClear = vi.fn();
 const mockAddChild = vi.fn();
 const mockRoundRect = vi.fn().mockReturnThis();
 const mockFill = vi.fn().mockReturnThis();
+const mockOn = vi.fn();
 
 vi.mock('pixi.js', () => ({
   Application: vi.fn().mockImplementation(function() { return {
@@ -19,6 +20,9 @@ vi.mock('pixi.js', () => ({
   Graphics: vi.fn().mockImplementation(function() { return {
     roundRect: mockRoundRect,
     fill: mockFill,
+    on: mockOn,
+    eventMode: 'none',
+    cursor: 'default'
   }}),
 }));
 
