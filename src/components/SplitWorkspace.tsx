@@ -9,6 +9,9 @@ import Transport from './Transport';
 import { LanceDBOrchestrator } from '../ai/LanceDBOrchestrator';
 import { CommandManager } from '../commands/CommandManager';
 import { AudioContextManager } from '../audio/AudioContextManager';
+import { PlaybackOrchestrator } from '../audio/PlaybackOrchestrator';
+import { ASTSerializer } from '../parser/ASTSerializer';
+import { TCALManager } from '../audio/TCALManager';
 
 export default function SplitWorkspace() {
   const [sourceCode, setSourceCode] = useState<string>('pno: c4:4');
@@ -23,6 +26,7 @@ export default function SplitWorkspace() {
   const orchestrator = useMemo(() => new LanceDBOrchestrator(), []);
   const commandManager = useMemo(() => new CommandManager(), []);
   const audioManager = useMemo(() => new AudioContextManager(), []);
+  const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(new ASTSerializer(), new TCALManager(), audioManager), [audioManager]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,7 +52,13 @@ export default function SplitWorkspace() {
       await audioManager.initialize();
       isAudioInitialized.current = true;
     }
-    setIsPlaying(prev => !prev);
+    
+    const nextPlaying = !isPlaying;
+    setIsPlaying(nextPlaying);
+    
+    if (nextPlaying) {
+      await playbackOrchestrator.compileAndPlay(sourceCode);
+    }
   };
 
   const handleUpdateAST = (newStatePayload: Partial<ASTState>) => {
