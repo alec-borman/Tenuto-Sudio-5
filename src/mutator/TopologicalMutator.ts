@@ -7,6 +7,27 @@ export class TopologicalMutator {
     this.temporalEngine = new TemporalEngine();
   }
 
+  private gcd(a: number, b: number): number {
+    return b === 0 ? a : this.gcd(b, a % b);
+  }
+
+  private approximateFraction(val: number, maxDenominator: number = 128) {
+    let bestNum = 1;
+    let bestDen = 1;
+    let minError = Infinity;
+
+    for (let den = 1; den <= maxDenominator; den++) {
+      const num = Math.round(val * den);
+      const error = Math.abs(val - (num / den));
+      if (error < minError) {
+        minError = error;
+        bestNum = num;
+        bestDen = den;
+      }
+    }
+    return { numerator: bestNum, denominator: bestDen };
+  }
+
   public resizeDuration(rawToken: string, deltaWidth: number, zScale: number): string {
     const [pitchStr, durationRawStr] = rawToken.split(':');
     
@@ -14,39 +35,23 @@ export class TopologicalMutator {
       throw new Error(`Invalid token format, missing duration: ${rawToken}`);
     }
 
-    // 1. Calculate original rational duration
-    const originalTemporal = this.temporalEngine.parseDuration(':' + durationRawStr);
-    const originalFraction = originalTemporal.numerator / originalTemporal.denominator;
+    const { numerator: N1, denominator: D1 } = this.temporalEngine.parseDuration(':' + durationRawStr);
 
-    // 2. Calculate fractional time added by the drag (ΔX / zScale)
-    const addedFraction = deltaWidth / zScale;
+    const dragRatio = deltaWidth / zScale;
+    const { numerator: N2, denominator: D2 } = this.approximateFraction(dragRatio, 128);
 
-    // 3. Accumulate complete logical capacity
-    const newTotalFraction = originalFraction + addedFraction;
+    let newNum = (N1 * D2) + (N2 * D1);
+    let newDen = (D1 * D2);
 
-    // 4. Deterministic Translation to Syntax
-    // Tenuto Standard Dotted Formats (assuming base power-of-2 structures):
-    // 3/8 -> :4.
-    // 3/16 -> :8.
-    // 1/4 -> :4
-    
-    // Quick precision tolerance check to account for IEEE 754 floating-point drift
-    const isClose = (val: number, target: number) => Math.abs(val - target) < 1e-6;
+    const divisor = this.gcd(Math.abs(newNum), Math.abs(newDen));
+    newNum /= divisor;
+    newDen /= divisor;
 
     let newDurationSignature = '';
-
-    if (isClose(newTotalFraction, 1.0)) newDurationSignature = ':1';
-    else if (isClose(newTotalFraction, 0.75)) newDurationSignature = ':2.';
-    else if (isClose(newTotalFraction, 0.5)) newDurationSignature = ':2';
-    else if (isClose(newTotalFraction, 0.375)) newDurationSignature = ':4.';
-    else if (isClose(newTotalFraction, 0.25)) newDurationSignature = ':4';
-    else if (isClose(newTotalFraction, 0.1875)) newDurationSignature = ':8.';
-    else if (isClose(newTotalFraction, 0.125)) newDurationSignature = ':8';
-    else if (isClose(newTotalFraction, 0.09375)) newDurationSignature = ':16.';
-    else if (isClose(newTotalFraction, 0.0625)) newDurationSignature = ':16';
-    else {
-      // Fallback for irrational drifts (should not occur in snapped grids)
-      throw new Error(`Unsupported irregular mathematical bounds for topological mutation: ${newTotalFraction}`);
+    if (newNum === 1) {
+      newDurationSignature = `:${newDen}`;
+    } else {
+      newDurationSignature = `:${newNum}/${newDen}`;
     }
 
     return `${pitchStr}${newDurationSignature}`;
