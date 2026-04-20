@@ -8,22 +8,26 @@ const mockClear = vi.fn();
 const mockAddChild = vi.fn();
 const mockRoundRect = vi.fn().mockReturnThis();
 const mockFill = vi.fn().mockReturnThis();
-const mockOn = vi.fn();
+const mockOn = vi.fn().mockReturnThis();
 
 vi.mock('pixi.js', () => ({
-  Application: vi.fn().mockImplementation(function() { return {
-    init: vi.fn().mockResolvedValue(true),
-    canvas: document.createElement('canvas'),
-    stage: { removeChildren: mockClear, addChild: mockAddChild },
-    destroy: vi.fn(),
-  }}),
-  Graphics: vi.fn().mockImplementation(function() { return {
-    roundRect: mockRoundRect,
-    fill: mockFill,
-    on: mockOn,
-    eventMode: 'none',
-    cursor: 'default'
-  }}),
+  Application: vi.fn().mockImplementation(function() {
+    return {
+      init: vi.fn().mockResolvedValue(true),
+      canvas: document.createElement('canvas'),
+      stage: { removeChildren: mockClear, addChild: mockAddChild },
+      destroy: vi.fn(),
+    }
+  }),
+  Graphics: vi.fn().mockImplementation(function() {
+    return {
+      roundRect: mockRoundRect,
+      fill: mockFill,
+      on: mockOn,
+      eventMode: 'none',
+      cursor: 'default'
+    }
+  })
 }));
 
 describe('TDB-517: The Pixi.js Render Pipeline', () => {
