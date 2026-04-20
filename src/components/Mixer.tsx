@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export interface ASTState {
   tracks: Array<{ id: string; volume: number; fx: string[] }>;
@@ -11,6 +11,15 @@ interface MixerProps {
 }
 
 export default function Mixer({ astState, onUpdateAST }: MixerProps) {
+  const [localVolumes, setLocalVolumes] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const updatedVolumes: Record<string, number> = {};
+    astState.tracks.forEach(t => {
+      updatedVolumes[t.id] = t.volume;
+    });
+    setLocalVolumes(updatedVolumes);
+  }, [astState.tracks]);
   return (
     <div className="flex flex-col bg-slate-900 text-slate-200 border-t border-slate-800 p-4 shrink-0 shadow-lg z-10 w-full overflow-x-auto min-h-[300px]">
       <h2 className="text-sm font-semibold mb-4 uppercase tracking-wider text-slate-400">Stateless Mixer</h2>
@@ -89,15 +98,24 @@ export default function Mixer({ astState, onUpdateAST }: MixerProps) {
                min="0"
                max="127"
                className="w-full rotate-[270deg] h-24 my-12 accent-blue-500"
-               value={track.volume}
-               onChange={(e) => onUpdateAST({
-                 trackId: track.id,
-                 mutationType: 'VOLUME_UPDATE',
-                 value: parseInt(e.target.value, 10),
-                 expectedSyntax: `var ${track.id}_vol = ${e.target.value}`
-               })}
+               value={localVolumes[track.id] !== undefined ? localVolumes[track.id] : track.volume}
+               onChange={(e) => {
+                 setLocalVolumes(prev => ({
+                   ...prev,
+                   [track.id]: parseInt(e.target.value, 10)
+                 }));
+               }}
+               onMouseUp={(e) => {
+                 const finalVal = localVolumes[track.id] !== undefined ? localVolumes[track.id] : parseInt((e.target as any).value, 10);
+                 onUpdateAST({
+                   trackId: track.id,
+                   mutationType: 'VOLUME_UPDATE',
+                   value: finalVal,
+                   expectedSyntax: `var ${track.id}_vol = ${finalVal}`
+                 });
+               }}
              />
-             <div className="text-[10px] font-mono text-slate-500">{track.volume}</div>
+             <div className="text-[10px] font-mono text-slate-500">{localVolumes[track.id] !== undefined ? localVolumes[track.id] : track.volume}</div>
           </div>
         ))}
       </div>

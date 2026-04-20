@@ -22,6 +22,7 @@ describe('TDB-511: The Stateless Mixer', () => {
     
     // Simulate moving the fader to 110
     fireEvent.change(voxFader, { target: { value: '110' } });
+    fireEvent.mouseUp(voxFader);
     
     expect(mockOnUpdate).toHaveBeenCalledWith(expect.objectContaining({
       trackId: 'vox',
