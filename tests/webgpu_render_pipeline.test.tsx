@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WebGPUCanvas from '../src/components/WebGPUCanvas';
 
 // Mock PIXI Application to test GPU instructions deterministically
-const mockClear = vi.fn();
+const mockClear = vi.fn().mockReturnThis();
 const mockAddChild = vi.fn();
 const mockRoundRect = vi.fn().mockReturnThis();
 const mockFill = vi.fn().mockReturnThis();
@@ -15,7 +15,7 @@ vi.mock('pixi.js', () => ({
     return {
       init: vi.fn().mockResolvedValue(true),
       canvas: document.createElement('canvas'),
-      stage: { removeChildren: mockClear, addChild: mockAddChild },
+      stage: { removeChildren: vi.fn(), addChild: mockAddChild },
       destroy: vi.fn(),
     }
   }),
@@ -24,6 +24,7 @@ vi.mock('pixi.js', () => ({
       roundRect: mockRoundRect,
       fill: mockFill,
       on: mockOn,
+      clear: mockClear,
       eventMode: 'none',
       cursor: 'default'
     }
@@ -51,7 +52,6 @@ describe('TDB-517: The Pixi.js Render Pipeline', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
 
     // Mathematical verification of the graphics pipeline
-    expect(mockClear).toHaveBeenCalled();
     expect(mockRoundRect).toHaveBeenCalledWith(
       0,   // X: startTime 0 * 100
       670, // Y: (127 - 60) * 10

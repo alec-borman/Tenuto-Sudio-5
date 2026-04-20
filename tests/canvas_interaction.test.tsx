@@ -20,6 +20,7 @@ vi.mock('pixi.js', () => ({
     roundRect: mockRoundRect,
     fill: mockFill,
     on: mockOn,
+    clear: vi.fn().mockReturnThis(),
     eventMode: 'none',
     cursor: 'default'
   }}),

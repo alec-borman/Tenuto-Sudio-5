@@ -20,6 +20,7 @@ export function calculateProjectionCoordinates(
 export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { events?: any[], onMutation?: (eventData: any, deltaX: number) => void, onSelect?: (nodeData: any) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PIXI.Application | null>(null);
+  const poolRef = useRef<PIXI.Graphics[]>([]);
   const onMutationRef = useRef(onMutation);
   const onSelectRef = useRef(onSelect);
 
@@ -78,49 +79,64 @@ export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { ev
     const app = appRef.current;
     if (!app || !app.stage) return;
     
-    // Clear geometry safely to eliminate overlap state corruption
-    app.stage.removeChildren();
+    const pool = poolRef.current;
 
-    events.forEach(event => {
+    events.forEach((event, index) => {
       const { x, y, width } = calculateProjectionCoordinates(event, event.startTime, 100, 10);
-      const g = new PIXI.Graphics();
+      
+      let g: PIXI.Graphics;
+
+      if (index < pool.length) {
+        g = pool[index];
+        g.clear();
+        g.visible = true;
+        g.renderable = true;
+      } else {
+        g = new PIXI.Graphics();
+        g.eventMode = 'dynamic';
+        g.cursor = 'col-resize';
+        
+        g.on('pointerdown', (e: PIXI.FederatedPointerEvent) => {
+          (g as any)._dragging = true;
+          (g as any)._startX = e.global.x;
+        });
+
+        g.on('globalpointermove', (e: PIXI.FederatedPointerEvent) => {
+          if (!(g as any)._dragging) return;
+        });
+
+        g.on('pointerup', (e: PIXI.FederatedPointerEvent) => {
+          if (!(g as any)._dragging) return;
+          (g as any)._dragging = false;
+          
+          const deltaX = e.global.x - (g as any)._startX;
+          if (deltaX !== 0 && onMutationRef.current) {
+            onMutationRef.current((g as any).linkedEvent, deltaX);
+          }
+        });
+
+        g.on('pointertap', (e: PIXI.FederatedPointerEvent) => {
+          if (onSelectRef.current) {
+            onSelectRef.current((g as any).linkedEvent);
+          }
+        });
+
+        pool.push(g);
+        app.stage.addChild(g);
+      }
+
+      // Safe state mapping preventing closure leaks across identical geometries over time
+      (g as any).linkedEvent = event;
+      
       g.roundRect(x, y, width, 8, 4);
       g.fill({ color: 0x0000ff });
-
-      g.eventMode = 'dynamic';
-      g.cursor = 'col-resize';
-      
-      let dragging = false;
-      let startX = 0;
-
-      g.on('pointerdown', (e: PIXI.FederatedPointerEvent) => {
-        dragging = true;
-        startX = e.global.x;
-      });
-
-      g.on('globalpointermove', (e: PIXI.FederatedPointerEvent) => {
-        if (!dragging) return;
-        // Visual optimistic projection could be added here
-      });
-
-      g.on('pointerup', (e: PIXI.FederatedPointerEvent) => {
-        if (!dragging) return;
-        dragging = false;
-        
-        const deltaX = e.global.x - startX;
-        if (deltaX !== 0 && onMutationRef.current) {
-          onMutationRef.current(event, deltaX);
-        }
-      });
-
-      g.on('pointertap', (e: PIXI.FederatedPointerEvent) => {
-        if (onSelectRef.current) {
-          onSelectRef.current(event);
-        }
-      });
-
-      app.stage.addChild(g);
     });
+
+    // Submerge surplus pools seamlessly resolving deletions 
+    for (let i = events.length; i < pool.length; i++) {
+        pool[i].visible = false;
+        pool[i].renderable = false;
+    }
   }
 
   return (
