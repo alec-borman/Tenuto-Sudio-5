@@ -12,6 +12,7 @@ import { AudioContextManager } from '../audio/AudioContextManager';
 import { PlaybackOrchestrator } from '../audio/PlaybackOrchestrator';
 import { ASTSerializer } from '../parser/ASTSerializer';
 import { TCALManager } from '../audio/TCALManager';
+import { IncrementalCompiler } from '../parser/IncrementalCompiler';
 
 export default function SplitWorkspace() {
   const [sourceCode, setSourceCode] = useState<string>('pno: c4:4');
@@ -27,37 +28,19 @@ export default function SplitWorkspace() {
   const commandManager = useMemo(() => new CommandManager(), []);
   const audioManager = useMemo(() => new AudioContextManager(), []);
   const serializer = useMemo(() => new ASTSerializer(), []);
+  const incrementalCompiler = useMemo(() => new IncrementalCompiler(serializer), [serializer]);
   const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(serializer, new TCALManager(), audioManager), [audioManager, serializer]);
 
   const [compiledEvents, setCompiledEvents] = useState<any[]>([]);
 
   useEffect(() => {
     try {
-      const eventsSequence = sourceCode.replace(/^[a-zA-Z_]+:\s*/, '').trim();
-      if (!eventsSequence) {
-        setCompiledEvents([]);
-        return;
-      }
-
-      const tokens = eventsSequence.split(/\s+/).filter(Boolean);
-      let cumulativeFraction = 0.0;
-
-      const parsedEvents = tokens.map(token => {
-        const event = serializer.parseToken(token);
-        const eWithTime = {
-          ...event,
-          startTime: { numerator: cumulativeFraction, denominator: 1 },
-          rawToken: token
-        };
-        cumulativeFraction += (event.duration.numerator / event.duration.denominator);
-        return eWithTime;
-      });
-
+      const parsedEvents = incrementalCompiler.update(sourceCode);
       setCompiledEvents(parsedEvents);
     } catch (e) {
       // Graceful Degradation: Silently catch partial syntaxes
     }
-  }, [sourceCode, serializer]);
+  }, [sourceCode, incrementalCompiler]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
