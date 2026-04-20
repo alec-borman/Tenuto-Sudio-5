@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import WebGPUCanvas from './WebGPUCanvas';
 import Inspector from './Inspector';
 import Mixer, { ASTState } from './Mixer';
 import AICopilot from './AICopilot';
 import { LanceDBOrchestrator } from '../ai/LanceDBOrchestrator';
+import { CommandManager } from '../commands/CommandManager';
 
 export default function SplitWorkspace() {
   const [activeSelection, setActiveSelection] = useState<any>(null);
@@ -14,6 +15,32 @@ export default function SplitWorkspace() {
   });
   
   const orchestrator = useMemo(() => new LanceDBOrchestrator(), []);
+  const commandManager = useMemo(() => new CommandManager(), []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          commandManager.redo();
+        } else {
+          commandManager.undo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [commandManager]);
+
+  const handleUpdateAST = (newStatePayload: Partial<ASTState>) => {
+    const prevState = { ...astState };
+    const nextState = { ...astState, ...newStatePayload };
+    
+    commandManager.executeCommand({
+      execute: () => setAstState(nextState),
+      undo: () => setAstState(prevState)
+    });
+  };
 
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden">
@@ -47,7 +74,7 @@ export default function SplitWorkspace() {
             </Panel>
             <PanelResizeHandle className="h-1 bg-slate-800 hover:bg-slate-700 transition-colors cursor-row-resize z-10" />
             <Panel defaultSize={30} minSize={20}>
-              <Mixer astState={astState} onUpdateAST={setAstState} />
+              <Mixer astState={astState} onUpdateAST={handleUpdateAST} />
             </Panel>
           </PanelGroup>
         </Panel>
