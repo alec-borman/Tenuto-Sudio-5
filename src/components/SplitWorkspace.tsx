@@ -4,10 +4,12 @@ import WebGPUCanvas from './WebGPUCanvas';
 import Inspector from './Inspector';
 import Mixer, { ASTState } from './Mixer';
 import AICopilot from './AICopilot';
+import CodeEditor from './CodeEditor';
 import { LanceDBOrchestrator } from '../ai/LanceDBOrchestrator';
 import { CommandManager } from '../commands/CommandManager';
 
 export default function SplitWorkspace() {
+  const [sourceCode, setSourceCode] = useState<string>('pno: c4:4');
   const [activeSelection, setActiveSelection] = useState<any>(null);
   const [astState, setAstState] = useState<ASTState>({
     tracks: [{ id: 'vox', volume: 100, fx: [] }],
@@ -42,14 +44,20 @@ export default function SplitWorkspace() {
     });
   };
 
+  const handleCodeEdit = (nextCode: string) => {
+    const prevCode = sourceCode;
+    commandManager.executeCommand({
+      execute: () => setSourceCode(nextCode),
+      undo: () => setSourceCode(prevCode)
+    });
+  };
+
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden">
       <PanelGroup direction="horizontal">
         <Panel defaultSize={40} minSize={20}>
-          <div className="h-full w-full flex items-center justify-center border-r border-slate-800 bg-slate-900">
-            <div data-testid="monaco-placeholder" className="text-sm font-mono text-slate-400">
-              Code
-            </div>
+          <div className="h-full w-full border-r border-slate-800 bg-slate-900">
+            <CodeEditor code={sourceCode} onChange={handleCodeEdit} />
           </div>
         </Panel>
 

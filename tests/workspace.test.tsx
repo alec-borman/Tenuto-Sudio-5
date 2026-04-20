@@ -58,7 +58,7 @@ describe('Tenuto Studio 5 - Memory Safety & Error Boundaries [TDB-502]', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     
     render(<App />);
-    expect(screen.getByTestId('monaco-placeholder')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Tenuto Source Editor/i })).toBeInTheDocument();
     expect(screen.getByTestId('webgpu-canvas-container')).toBeInTheDocument();
   });
 });
