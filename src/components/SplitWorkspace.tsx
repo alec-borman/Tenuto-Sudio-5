@@ -1,16 +1,20 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import WebGPUCanvas from './WebGPUCanvas';
 import Inspector from './Inspector';
 import Mixer, { ASTState } from './Mixer';
 import AICopilot from './AICopilot';
 import CodeEditor from './CodeEditor';
+import Transport from './Transport';
 import { LanceDBOrchestrator } from '../ai/LanceDBOrchestrator';
 import { CommandManager } from '../commands/CommandManager';
+import { AudioContextManager } from '../audio/AudioContextManager';
 
 export default function SplitWorkspace() {
   const [sourceCode, setSourceCode] = useState<string>('pno: c4:4');
   const [activeSelection, setActiveSelection] = useState<any>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const isAudioInitialized = useRef<boolean>(false);
   const [astState, setAstState] = useState<ASTState>({
     tracks: [{ id: 'vox', volume: 100, fx: [] }],
     meta: { sidechain: null }
@@ -18,6 +22,7 @@ export default function SplitWorkspace() {
   
   const orchestrator = useMemo(() => new LanceDBOrchestrator(), []);
   const commandManager = useMemo(() => new CommandManager(), []);
+  const audioManager = useMemo(() => new AudioContextManager(), []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,10 +34,22 @@ export default function SplitWorkspace() {
           commandManager.undo();
         }
       }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleTogglePlay();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [commandManager]);
+  }, [commandManager, isPlaying]);
+
+  const handleTogglePlay = async () => {
+    if (!isAudioInitialized.current) {
+      await audioManager.initialize();
+      isAudioInitialized.current = true;
+    }
+    setIsPlaying(prev => !prev);
+  };
 
   const handleUpdateAST = (newStatePayload: Partial<ASTState>) => {
     const prevState = { ...astState };
@@ -53,8 +70,9 @@ export default function SplitWorkspace() {
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden">
-      <PanelGroup direction="horizontal">
+    <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden flex flex-col">
+      <Transport isPlaying={isPlaying} onTogglePlay={handleTogglePlay} />
+      <PanelGroup direction="horizontal" className="flex-grow">
         <Panel defaultSize={40} minSize={20}>
           <div className="h-full w-full border-r border-slate-800 bg-slate-900">
             <CodeEditor code={sourceCode} onChange={handleCodeEdit} />
