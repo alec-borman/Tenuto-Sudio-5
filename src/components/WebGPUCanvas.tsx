@@ -17,12 +17,14 @@ export function calculateProjectionCoordinates(
   };
 }
 
-export default function WebGPUCanvas() {
+export default function WebGPUCanvas({ events = [] }: { events?: any[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const appRef = useRef<PIXI.Application | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     const app = new PIXI.Application();
+    appRef.current = app;
 
     // 1. The Async Lock: Store the promise returned by app.init()
     const initPromise = app.init({
@@ -41,10 +43,7 @@ export default function WebGPUCanvas() {
         containerRef.current.appendChild(app.canvas);
       }
 
-      const rect = new PIXI.Graphics();
-      rect.rect(100, 100, 200, 150);
-      rect.fill({ color: 0x0000ff });
-      app.stage.addChild(rect);
+      renderEvents();
     }).catch(console.error);
 
     return () => {
@@ -59,6 +58,30 @@ export default function WebGPUCanvas() {
       });
     };
   }, []);
+
+  // Responsive event rendering pass
+  useEffect(() => {
+    if (appRef.current && appRef.current.stage) {
+       // Only render if already initialized
+       renderEvents();
+    }
+  }, [events]);
+
+  function renderEvents() {
+    const app = appRef.current;
+    if (!app || !app.stage) return;
+    
+    // Clear geometry safely to eliminate overlap state corruption
+    app.stage.removeChildren();
+
+    events.forEach(event => {
+      const { x, y, width } = calculateProjectionCoordinates(event, event.startTime, 100, 10);
+      const g = new PIXI.Graphics();
+      g.roundRect(x, y, width, 8, 4);
+      g.fill({ color: 0x0000ff });
+      app.stage.addChild(g);
+    });
+  }
 
   return (
     <div
