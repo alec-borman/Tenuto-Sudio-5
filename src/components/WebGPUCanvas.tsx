@@ -17,9 +17,14 @@ export function calculateProjectionCoordinates(
   };
 }
 
-export default function WebGPUCanvas({ events = [] }: { events?: any[] }) {
+export default function WebGPUCanvas({ events = [], onMutation }: { events?: any[], onMutation?: (eventData: any, deltaX: number) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PIXI.Application | null>(null);
+  const onMutationRef = useRef(onMutation);
+
+  useEffect(() => {
+    onMutationRef.current = onMutation;
+  }, [onMutation]);
 
   useEffect(() => {
     let isMounted = true;
@@ -79,6 +84,33 @@ export default function WebGPUCanvas({ events = [] }: { events?: any[] }) {
       const g = new PIXI.Graphics();
       g.roundRect(x, y, width, 8, 4);
       g.fill({ color: 0x0000ff });
+
+      g.eventMode = 'dynamic';
+      g.cursor = 'col-resize';
+      
+      let dragging = false;
+      let startX = 0;
+
+      g.on('pointerdown', (e: PIXI.FederatedPointerEvent) => {
+        dragging = true;
+        startX = e.global.x;
+      });
+
+      g.on('globalpointermove', (e: PIXI.FederatedPointerEvent) => {
+        if (!dragging) return;
+        // Visual optimistic projection could be added here
+      });
+
+      g.on('pointerup', (e: PIXI.FederatedPointerEvent) => {
+        if (!dragging) return;
+        dragging = false;
+        
+        const deltaX = e.global.x - startX;
+        if (deltaX !== 0 && onMutationRef.current) {
+          onMutationRef.current(event, deltaX);
+        }
+      });
+
       app.stage.addChild(g);
     });
   }
