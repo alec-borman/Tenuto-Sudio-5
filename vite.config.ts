@@ -14,7 +14,7 @@ export default defineConfig(({mode}) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
-        '@lancedb/lancedb': path.resolve(__dirname, './tests/__mocks__/lancedb.ts')
+        '@lancedb/lancedb': path.resolve(__dirname, './src/ai/lancedb-stub.ts')
       },
     },
     server: {
