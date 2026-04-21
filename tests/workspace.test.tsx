@@ -28,12 +28,6 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
-vi.mock('react-resizable-panels', () => ({
-  PanelGroup: ({ children }: any) => <div data-testid="panel-group">{children}</div>,
-  Panel: ({ children }: any) => <div data-testid="panel">{children}</div>,
-  PanelResizeHandle: () => <div data-testid="resize-handle"></div>,
-}));
-
 HTMLCanvasElement.prototype.getContext = vi.fn();
 
 // Malicious child to trigger Error Boundary

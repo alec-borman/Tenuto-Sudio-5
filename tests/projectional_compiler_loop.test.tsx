@@ -32,12 +32,6 @@ vi.mock('../src/components/Inspector', () => ({ default: () => <div>Inspector</d
 vi.mock('../src/components/Mixer', () => ({ default: () => <div>Mixer</div> }));
 vi.mock('../src/components/AICopilot', () => ({ default: () => <div>AICopilot</div> }));
 vi.mock('../src/components/Transport', () => ({ default: () => <div>Transport</div> }));
-vi.mock('react-resizable-panels', () => ({
-  PanelGroup: ({ children }: any) => <div>{children}</div>,
-  Panel: ({ children }: any) => <div>{children}</div>,
-  PanelResizeHandle: () => <div></div>,
-}));
-
 describe('TDB-526: The Projectional Compiler Loop', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -25,12 +25,6 @@ vi.mock('../src/components/WebGPUCanvas', () => ({ default: () => <div>Canvas</d
 vi.mock('../src/components/Inspector', () => ({ default: () => <div>Inspector</div> }));
 vi.mock('../src/components/Mixer', () => ({ default: () => <div>Mixer</div> }));
 vi.mock('../src/components/AICopilot', () => ({ default: () => <div>AICopilot</div> }));
-vi.mock('react-resizable-panels', () => ({
-  PanelGroup: ({ children }: any) => <div>{children}</div>,
-  Panel: ({ children }: any) => <div>{children}</div>,
-  PanelResizeHandle: () => <div></div>,
-}));
-
 describe('TDB-523: The Code Editor Matrix', () => {
   beforeEach(() => {
     vi.clearAllMocks();

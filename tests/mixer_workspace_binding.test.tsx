@@ -21,13 +21,6 @@ vi.mock('../src/components/Mixer', () => ({
   )
 }));
 
-// Mock react-resizable-panels
-vi.mock('react-resizable-panels', () => ({
-  PanelGroup: ({ children, direction }: any) => <div data-testid={`panel-group-${direction}`}>{children}</div>,
-  Panel: ({ children }: any) => <div data-testid="panel">{children}</div>,
-  PanelResizeHandle: () => <div data-testid="resize-handle"></div>,
-}));
-
 describe('TDB-520: Stateless Mixer Workspace Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();

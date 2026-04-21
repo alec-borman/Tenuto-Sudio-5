@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import WebGPUCanvas from './WebGPUCanvas';
 import Inspector from './Inspector';
 import Mixer, { ASTState } from './Mixer';
@@ -96,39 +95,30 @@ export default function SplitWorkspace() {
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden flex flex-col">
       <Transport isPlaying={isPlaying} onTogglePlay={handleTogglePlay} />
-      <PanelGroup direction="horizontal" className="flex-grow">
-        <Panel defaultSize={40} minSize={20}>
-          <div className="h-full w-full border-r border-slate-800 bg-slate-900">
-            <CodeEditor code={sourceCode} onChange={handleCodeEdit} />
+      <div className="flex h-full w-full">
+        <div className="w-[40%] h-full border-r border-slate-800 bg-slate-900">
+          <CodeEditor code={sourceCode} onChange={handleCodeEdit} />
+        </div>
+
+        <div className="w-[60%] flex flex-col h-full">
+          <div className="flex flex-row h-full relative flex-grow">
+            <div className="flex-grow h-full relative">
+              <WebGPUCanvas onSelect={setActiveSelection} events={compiledEvents} />
+            </div>
+            <div className="flex flex-col h-full shrink-0 shadow-lg z-10 w-64 border-l border-slate-700 bg-slate-900">
+              <Inspector selection={activeSelection} onUpdate={() => {}} />
+              <AICopilot 
+                activeAST={activeSelection ? `${activeSelection.type}:${activeSelection.duration}` : "empty_state"}
+                orchestrator={orchestrator}
+                onCommit={(cmd) => { console.log('Committed ghost AST command:', cmd.payload); }}
+              />
+            </div>
           </div>
-        </Panel>
-
-        <PanelResizeHandle className="w-1 bg-slate-800 hover:bg-slate-700 transition-colors cursor-col-resize z-10" />
-
-        <Panel minSize={30}>
-          <PanelGroup direction="vertical">
-            <Panel minSize={30}>
-              <div className="h-full w-full relative flex">
-                <div className="flex-grow h-full relative">
-                  <WebGPUCanvas onSelect={setActiveSelection} events={compiledEvents} />
-                </div>
-                <div className="flex flex-col h-full shrink-0 shadow-lg z-10 w-64 border-l border-slate-700 bg-slate-900">
-                  <Inspector selection={activeSelection} onUpdate={() => {}} />
-                  <AICopilot 
-                    activeAST={activeSelection ? `${activeSelection.type}:${activeSelection.duration}` : "empty_state"}
-                    orchestrator={orchestrator}
-                    onCommit={(cmd) => { console.log('Committed ghost AST command:', cmd.payload); }}
-                  />
-                </div>
-              </div>
-            </Panel>
-            <PanelResizeHandle className="h-1 bg-slate-800 hover:bg-slate-700 transition-colors cursor-row-resize z-10" />
-            <Panel defaultSize={30} minSize={20}>
-              <Mixer astState={astState} onUpdateAST={handleUpdateAST} />
-            </Panel>
-          </PanelGroup>
-        </Panel>
-      </PanelGroup>
+          <div className="shrink-0 border-t border-slate-800">
+            <Mixer astState={astState} onUpdateAST={handleUpdateAST} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

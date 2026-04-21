@@ -24,12 +24,6 @@ vi.mock('../src/components/Mixer', () => ({
     </button>
   )
 }));
-vi.mock('react-resizable-panels', () => ({
-  PanelGroup: ({ children }: any) => <div>{children}</div>,
-  Panel: ({ children }: any) => <div>{children}</div>,
-  PanelResizeHandle: () => <div></div>,
-}));
-
 describe('TDB-522: Global Command Integration (Undo/Redo)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
