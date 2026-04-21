@@ -1,7 +1,3 @@
-Here is the document rebranded as **Tenuto Studio 5**, with all version references updated to **5.0.0** and the title/headers adjusted accordingly. The content remains otherwise identical to the original specification.
-
----
-
 **Tenuto Studio 5** 𝄆 TENUTO 5.0.0 𝄇  
 The Declarative Protocol for Musical Physics & Logic  
 Canonical Language Specification  
