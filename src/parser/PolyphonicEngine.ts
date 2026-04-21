@@ -11,6 +11,7 @@ export interface PolyphonicResult {
 
 export interface PolyphonicOptions {
   strict?: boolean;
+  autoPadVoices?: boolean;
 }
 
 export class PolyphonicEngine {
@@ -18,10 +19,10 @@ export class PolyphonicEngine {
 
   public parseVoices(voices: string[][], options?: PolyphonicOptions): PolyphonicResult {
     const resultVoices: VoiceResult[] = [];
-    let initialDuration: number | null = null;
+    let maxDuration = 0;
 
+    // Pass 1: Parse and structurally evaluate max bounding volume metrics
     for (const voiceTokens of voices) {
-      // 1. State Sandboxing: Spin up a completely isolated serializer instance per voice
       const localSerializer = new ASTSerializer();
       const events: AtomicEvent[] = [];
       let totalVoiceDuration = 0;
@@ -35,24 +36,54 @@ export class PolyphonicEngine {
         }
       }
 
+      if (totalVoiceDuration > maxDuration) {
+          maxDuration = totalVoiceDuration;
+      }
+
       resultVoices.push({
         events,
         totalDuration: totalVoiceDuration
       });
+    }
 
-      // 2. Strict Mode Constraints
-      if (options?.strict) {
-        if (initialDuration === null) {
-          initialDuration = totalVoiceDuration;
-        } else if (Math.abs(initialDuration - totalVoiceDuration) > 1e-9) { // Floating point safety gap
-          throw new Error('E3002: Voice Sync Failure. Parallel voices must have identical durations in strict mode.');
+    // Pass 2: Strict Mode Sync Evaluation and Boundary Padding
+    if (options?.strict) {
+      for (const voice of resultVoices) {
+        const diff = maxDuration - voice.totalDuration;
+        
+        if (diff > 1e-9) { 
+          if (options.autoPadVoices) {
+            // Dynamically inject Rest Token matching fractional delta natively satisfying strict metrics
+            let bestNum = 1;
+            let bestDen = 1;
+            let minError = Infinity;
+
+            for (let den = 1; den <= 256; den++) {
+              const num = Math.round(diff * den);
+              const error = Math.abs(diff - (num / den));
+              if (error < minError) {
+                minError = error;
+                bestNum = num;
+                bestDen = den;
+              }
+            }
+            
+            voice.events.push({
+              pitch: { midi: 0, frequency: 0 },
+              duration: { numerator: bestNum, denominator: bestDen },
+              rawToken: `r:${bestDen}`
+            } as AtomicEvent);
+
+            voice.totalDuration = maxDuration;
+          } else {
+             throw new Error('E3002: Voice Sync Failure. Parallel voices must have identical durations in strict mode.');
+          }
         }
       }
     }
 
-    // Attach length directly to voices array for legacy test compatibility mapping
     return { 
-      voices: Object.assign(resultVoices, { totalDuration: resultVoices[0]?.totalDuration || 0 })
+      voices: Object.assign(resultVoices, { totalDuration: maxDuration })
     } as any;
   }
 }
