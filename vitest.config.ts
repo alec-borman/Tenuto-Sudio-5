@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      'lancedb': path.resolve(__dirname, './tests/__mocks__/lancedb.ts')
+      '@lancedb/lancedb': path.resolve(__dirname, './tests/__mocks__/lancedb.ts')
     }
   },
   test: {

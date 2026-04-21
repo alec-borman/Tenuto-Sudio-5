@@ -3,7 +3,7 @@ import { LanceDBOrchestrator } from '../src/ai/LanceDBOrchestrator';
 import { ASTCommand } from '../src/commands/ASTCommand';
 
 // Mock LanceDB to prevent actual WASM/file-system operations during isolated testing
-vi.mock('lancedb', () => ({
+vi.mock('@lancedb/lancedb', () => ({
   connect: vi.fn().mockResolvedValue({
     openTable: vi.fn().mockResolvedValue({
       search: vi.fn().mockReturnThis(),

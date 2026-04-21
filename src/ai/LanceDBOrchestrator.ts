@@ -1,7 +1,7 @@
 import { ASTCommand } from '../commands/ASTCommand';
 
 // Import mocked dynamically via vector loader injection pattern
-import * as lancedb from 'lancedb'; // Using ambient resolution / mock resolution mapping
+import * as lancedb from '@lancedb/lancedb'; // Using ambient resolution / mock resolution mapping
 
 export interface GhostAST {
   isTemporary: boolean;
