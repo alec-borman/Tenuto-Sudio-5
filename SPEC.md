@@ -776,3 +776,26 @@ This ensures the system never violates the "Never Stop the Music" rule, providin
 * **The Rejection of Zero-Crossing (Preventing Jitter):** A compliant `style=standard` or `style=synth` compiler SHALL NOT utilize zero-crossing detection for buffer transitions. Waiting for a waveform to physically cross the zero-axis introduces arbitrary micro-latency, fundamentally violating the Axiom 3 (Rational Time) mandate. The physical timeline must remain a strict, unwavering reflection of the linguistic truth, entirely immune to the unpredictable phase dependencies of the generated audio.
 * **The Deterministic Micro-Crossfade:** Upon receiving a newly compiled Intermediate Representation (IR) via an atomic write to the one-way `SharedArrayBuffer`, the isolated AudioWorklet MUST execute a mathematically strict, equal-power micro-crossfade (typically bounded between 2ms and 5ms). The lock-free thread simultaneously reads the fading "Last Known Valid IR" and the newly injected IR, bridging the states over a fixed, continuous interpolation window without transient pops, clicks, or thread stalls.
 * **Phase & Envelope Recalculation:** When executing an atomic swap or a transport "Needle Drop", the DSP engine MUST NOT blindly guess the active waveform state. The system SHALL mathematically recalculate all preceding continuous interpolations, sticky states, and ADSR curves from the absolute zero tick. This mathematically guarantees the newly injected audio buffer aligns perfectly with the required phase and amplitude at that exact execution microsecond, ruthlessly reducing systemic entropy.
+
+
+**Addendum O: The Version Migration Pipeline & Legacy Syntax Handling**
+
+To reconcile the mandate of Decades-Long Archival Stability with the uncompromising mathematical strictness of the Tenuto compilation engine, compliant implementations MUST enforce a deterministic version migration pipeline. The system rejects silent backward-compatibility bloat in favor of explicit, automated, forward-moving syntax translation.
+
+**O.1 Graceful AST Pruning (Soft Deprecation)**
+When a `.ten` file declares an older version (e.g., `tenuto "4.0"`) and contains soft-deprecated tokens, the universal LL(1) Lexer MUST successfully parse the grammar. However, the compiler SHALL execute an AST Pruning pass, gracefully bypassing the deprecated topological nodes. 
+* **The Diagnostic Flag:** The compiler emits a `W2000-Series` warning. The UI renders a distinct yellow squiggle under the deprecated syntax.
+* **Acoustic Continuity:** The `TenutoProcessor` ignores the pruned nodes but continues to execute the remaining valid Intermediate Representation (IR), ensuring the project still loads and plays without catastrophic failure.
+
+**O.2 Fail-Forward Semantic Translation**
+Tenuto Studio MUST NOT abandon the user to archaic documentation. When a deprecated token is flagged, the IDE's LanceDB AI Copilot intercepts the `W2000` diagnostic and surfaces a Fail-Forward resolution. 
+* **The Mechanism:** A floating Quick Fix icon provides a one-click architectural translation. The RAG engine surgically rewrites the legacy AST node into the modern 5.0.0 syntax equivalent, committing the transformation deterministically via the Operational Transform (OT) stack.
+
+**O.3 The Hard Demarcation (Protocol Violation)**
+To maintain a zero-entropy execution environment, the compiler SHALL NOT support legacy execution paths across major version boundaries. 
+* If a legacy syntax violates the core physics of the current engine (e.g., relying on obsolete floating-point representations rather than Rational Time), the compiler MUST throw an `E1002 Syntax Error` and refuse to generate an audio buffer for that specific block. 
+* **The "Never Stop the Music" Fallback:** Consistent with the core specifications, the WebAudio thread will loop the last known valid IR (if any) or remain silent for that block, but the application shell WILL NOT crash. The user is forced to utilize the Fail-Forward translator to modernize the file.
+
+**O.4 The Retroactive Earthquake Protocol**
+If a version migration introduces a foundational shift in the compiler's laws of physics (e.g., altering the depth decay constant $\lambda$ or shifting a core routing algorithm), historical 1024-dimensional vectors will instantly misalign. 
+* **Vector Recalculation:** The system MUST trigger a "Retroactive Earthquake." The DIR engine initiates a Complete Vector Purge (as defined in the localized indexing protocol), forces a fresh AST-Aware Re-Extraction of the modernized syntax, and commits the newly projected centroid to the `.tela` manifest. This guarantees structural continuity across the entire digital universe without polluting the LanceDB index with legacy artifacts.
