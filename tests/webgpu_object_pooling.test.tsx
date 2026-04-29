@@ -10,6 +10,10 @@ const graphicsSpy = vi.fn().mockImplementation(() => ({
   fill: vi.fn().mockReturnThis(),
   on: vi.fn().mockReturnThis(),
   clear: vi.fn().mockReturnThis(),
+  moveTo: vi.fn().mockReturnThis(),
+  lineTo: vi.fn().mockReturnThis(),
+  stroke: vi.fn().mockReturnThis(),
+  rect: vi.fn().mockReturnThis(),
   eventMode: 'none',
   cursor: 'default',
   visible: true,
@@ -23,7 +27,7 @@ vi.mock('pixi.js', () => ({
     return {
       init: vi.fn().mockResolvedValue(true),
       canvas: document.createElement('canvas'),
-      stage: { removeChildren: vi.fn(), addChild: vi.fn(), children: [] },
+      stage: { removeChildren: vi.fn(), addChild: vi.fn(), addChildAt: vi.fn(), children: [] },
       destroy: vi.fn(),
     }
   }),

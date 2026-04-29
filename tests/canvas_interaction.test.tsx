@@ -13,7 +13,7 @@ vi.mock('pixi.js', () => ({
   Application: vi.fn().mockImplementation(function() { return {
     init: vi.fn().mockResolvedValue(true),
     canvas: document.createElement('canvas'),
-    stage: { removeChildren: vi.fn(), addChild: vi.fn() },
+    stage: { removeChildren: vi.fn(), addChild: vi.fn(), addChildAt: vi.fn() },
     destroy: vi.fn(),
   }}),
   Graphics: vi.fn().mockImplementation(function() { return {
@@ -21,6 +21,10 @@ vi.mock('pixi.js', () => ({
     fill: mockFill,
     on: mockOn,
     clear: vi.fn().mockReturnThis(),
+    moveTo: vi.fn().mockReturnThis(),
+    lineTo: vi.fn().mockReturnThis(),
+    stroke: vi.fn().mockReturnThis(),
+    rect: vi.fn().mockReturnThis(),
     eventMode: 'none',
     cursor: 'default'
   }}),

@@ -1,10 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 
-import { AtomicEvent } from '../parser/ASTSerializer';
-
 export function calculateProjectionCoordinates(
-  event: AtomicEvent,
+  event: any,
   startTime: { numerator: number, denominator: number },
   zScale: number,
   rowHeight: number
@@ -23,6 +21,7 @@ export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { ev
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PIXI.Application | null>(null);
   const poolRef = useRef<PIXI.Graphics[]>([]);
+  const gridRef = useRef<PIXI.Graphics | null>(null);
   const onMutationRef = useRef(onMutation);
   const onSelectRef = useRef(onSelect);
 
@@ -38,7 +37,7 @@ export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { ev
 
     // 1. The Async Lock: Store the promise returned by app.init()
     const initPromise = app.init({
-      background: '#1099bb',
+      background: '#0B0F19',
       preference: 'webgpu',
     }).catch((e) => {
       // Ignore initial render rejection in test environments
@@ -81,10 +80,51 @@ export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { ev
     const app = appRef.current;
     if (!app || !app.stage) return;
     
+    const zScale = 100;
+    const rowHeight = 10;
+    const pianoRollWidth = 40;
+
+    if (!gridRef.current) {
+      gridRef.current = new PIXI.Graphics();
+      if (app.stage.addChildAt) {
+          app.stage.addChildAt(gridRef.current, 0);
+      } else {
+          app.stage.addChild(gridRef.current);
+      }
+    }
+
+    const grid = gridRef.current;
+    grid.clear();
+
+    const maxX = 2000;
+    const maxY = 128 * rowHeight;
+
+    // Cartesian Grid
+    for (let x = pianoRollWidth; x < maxX; x += zScale) {
+       grid.moveTo(x, 0);
+       grid.lineTo(x, maxY);
+       grid.stroke({ color: 0x334155, alpha: 0.5, width: 1 });
+    }
+    
+    for (let y = 0; y < maxY; y += rowHeight) {
+       grid.moveTo(pianoRollWidth, y);
+       grid.lineTo(maxX, y);
+       // Subtle line every row
+       grid.stroke({ color: 0x334155, alpha: 0.2, width: 1 });
+    }
+
+    // Piano Roll Anchor (Left edge)
+    const accidentals = new Set([1, 3, 6, 8, 10]); // Black keys in MIDI (relative to C)
+    for (let i = 0; i < 128; i++) {
+       const isAccidental = accidentals.has(i % 12);
+       grid.rect(0, (127 - i) * rowHeight, pianoRollWidth, rowHeight);
+       grid.fill({ color: isAccidental ? 0x0F172A : 0x1E293B });
+    }
+
     const pool = poolRef.current;
 
     events.forEach((event, index) => {
-      const { x, y, width } = calculateProjectionCoordinates(event, event.startTime, 100, 10);
+      const { x, y, width } = calculateProjectionCoordinates(event, event.startTime, zScale, rowHeight);
       
       let g: PIXI.Graphics;
 
@@ -130,8 +170,11 @@ export default function WebGPUCanvas({ events = [], onMutation, onSelect }: { ev
       // Safe state mapping preventing closure leaks across identical geometries over time
       (g as any).linkedEvent = event;
       
-      g.roundRect(x, y, width, 8, 4);
-      g.fill({ color: 0x0000ff });
+      g.roundRect(x + pianoRollWidth, y, width, 8, 4);
+      
+      const isSynth = event.style === 'synth';
+      const color = isSynth ? 0x10B981 : 0x3B82F6;
+      g.fill({ color });
     });
 
     // Submerge surplus pools seamlessly resolving deletions 
