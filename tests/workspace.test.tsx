@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from 'vitest';
 import App from '../src/App';
 import WebGPUCanvas from '../src/components/WebGPUCanvas';
 import ErrorBoundary from '../src/components/ErrorBoundary';
+import SplitWorkspace from '../src/components/SplitWorkspace';
 
 // Mock Monaco Editor for deterministic JSDOM testing
 vi.mock('@monaco-editor/react', () => {
@@ -26,6 +27,12 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
+}));
+
+vi.mock('react-resizable-panels', () => ({
+  Group: ({ children, orientation }: any) => <div data-testid={`panel-group-${orientation}`}>{children}</div>,
+  Panel: ({ children }: any) => <div data-testid="panel">{children}</div>,
+  Separator: () => <div data-testid="resize-handle"></div>,
 }));
 
 HTMLCanvasElement.prototype.getContext = vi.fn();
@@ -69,5 +76,18 @@ describe('Tenuto Studio 5 - Memory Safety & Error Boundaries [TDB-502]', () => {
     render(<App />);
     expect(screen.getByRole('textbox', { name: /Tenuto Source Editor/i })).toBeInTheDocument();
     expect(screen.getByTestId('webgpu-canvas-container')).toBeInTheDocument();
+  });
+});
+
+describe('TDB-701: Advanced Workspace Topology', () => {
+  it('MUST render the exact multi-hemisphere grid configuration', () => {
+    render(<SplitWorkspace />);
+    // Verify structural placeholders for the new high-density layout
+    expect(screen.getByTestId('command-history-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('engine-status-panel')).toBeInTheDocument();
+    
+    // Verify the Canvas and Mixer remain mathematically bound
+    expect(screen.getByTestId('webgpu-canvas-container')).toBeInTheDocument();
+    expect(screen.getByText(/Stateless Mixer/i)).toBeInTheDocument();
   });
 });

@@ -24,9 +24,9 @@ vi.mock('../src/components/Inspector', () => ({
 
 // Mock react-resizable-panels to prevent ResizeObserver errors
 vi.mock('react-resizable-panels', () => ({
-  PanelGroup: ({ children }: any) => <div>{children}</div>,
-  Panel: ({ children }: any) => <div>{children}</div>,
-  PanelResizeHandle: () => <div></div>,
+  Group: ({ children, orientation }: any) => <div data-testid={`panel-group-${orientation}`}>{children}</div>,
+  Panel: ({ children }: any) => <div data-testid="panel">{children}</div>,
+  Separator: () => <div data-testid="resize-handle"></div>,
 }));
 
 describe('TDB-519: Global State & Context Inspector Binding', () => {

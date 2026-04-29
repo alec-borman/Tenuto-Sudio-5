@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 
+import { AtomicEvent } from '../parser/ASTSerializer';
+
 export function calculateProjectionCoordinates(
-  event: any,
+  event: AtomicEvent,
   startTime: { numerator: number, denominator: number },
   zScale: number,
   rowHeight: number

@@ -1,4 +1,5 @@
 import { ASTSerializer, AtomicEvent } from './ASTSerializer';
+import { Lexer, TokenType } from './lexer';
 
 export class IncrementalCompiler {
   private cachedTokens: string[] = [];
@@ -15,7 +16,14 @@ export class IncrementalCompiler {
       return [];
     }
 
-    const tokens = eventsSequence.split(/\s+/).filter(Boolean);
+    const lexer = new Lexer(eventsSequence);
+    const lexedTokens = lexer.tokenize();
+    
+    // Evaluate strictly skipping bracket architecture temporarily avoiding AST logic crashes
+    const tokens = lexedTokens
+      .filter(t => t.type !== TokenType.BRACKET && t.type !== TokenType.PIPE)
+      .map(t => t.value);
+
     let cumulativeFraction = 0.0;
     let hasMutated = false;
 
