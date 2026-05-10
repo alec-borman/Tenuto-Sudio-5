@@ -97,10 +97,50 @@ export default function SplitWorkspace() {
 
   const handleCanvasMutation = (eventData: any, deltaX: number) => {
     try {
-      if (!eventData || !eventData.rawToken) return;
-      const mutatedToken = topologicalMutator.resizeDuration(eventData.rawToken, deltaX, 100);
-      const nextCode = sourceCode.replace(eventData.rawToken, mutatedToken);
-      handleCodeEdit(nextCode);
+      if (!eventData || !eventData.astNodeId) {
+        // Fallback to legacy string replacement if no AST ID provided
+        if (eventData && eventData.rawToken) {
+          const mutatedToken = topologicalMutator.resizeDuration(eventData.rawToken, deltaX, 100);
+          const nextCode = sourceCode.replace(eventData.rawToken, mutatedToken);
+          handleCodeEdit(nextCode);
+        }
+        return;
+      }
+      
+      const score = incrementalCompiler.lastScore;
+      if (!score) return;
+      
+      let foundEvent = null;
+      // Search the AST for the matching event node
+      for (const tl of score.topLevels) {
+        const checkLogic = (logicList: any[]) => {
+          for (const l of logicList) {
+            if (l.singleVoice) {
+              for (const e of l.singleVoice.events) {
+                if (e.astNodeId === eventData.astNodeId) foundEvent = e;
+              }
+            } else if (l.voiceGroup) {
+              for (const v of l.voiceGroup.voices) {
+                for (const e of v.events) {
+                  if (e.astNodeId === eventData.astNodeId) foundEvent = e;
+                }
+              }
+            }
+          }
+        };
+
+        if (tl.logic) checkLogic(tl.logic); // Measure
+        else if (tl.singleVoice || tl.voiceGroup) checkLogic([tl]); // TopLevel assignment
+      }
+
+      if (foundEvent && foundEvent.duration) {
+         const dummyToken = `dummy:${foundEvent.duration.raw}`;
+         const mutated = topologicalMutator.resizeDuration(dummyToken, deltaX, 100);
+         foundEvent.duration.raw = mutated.split(':')[1];
+         
+         const nextCode = score.serialize();
+         handleCodeEdit(nextCode);
+      }
     } catch (e) {
       console.warn('Topological mutation ignored (Out of bounds/Invalid Token):', e);
     }
