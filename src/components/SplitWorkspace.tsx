@@ -13,6 +13,7 @@ import { PlaybackOrchestrator } from '../audio/PlaybackOrchestrator';
 import { ASTSerializer } from '../parser/ASTSerializer';
 import { TCALManager } from '../audio/TCALManager';
 import { IncrementalCompiler } from '../parser/IncrementalCompiler';
+import { TopologicalMutator } from '../mutator/TopologicalMutator';
 
 export default function SplitWorkspace() {
   const [sourceCode, setSourceCode] = useState<string>('pno: c4:4');
@@ -30,6 +31,7 @@ export default function SplitWorkspace() {
   const serializer = useMemo(() => new ASTSerializer(), []);
   const incrementalCompiler = useMemo(() => new IncrementalCompiler(serializer), [serializer]);
   const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(serializer, new TCALManager(), audioManager), [audioManager, serializer]);
+  const topologicalMutator = useMemo(() => new TopologicalMutator(), []);
 
   const [compiledEvents, setCompiledEvents] = useState<any[]>([]);
 
@@ -93,6 +95,17 @@ export default function SplitWorkspace() {
     });
   };
 
+  const handleCanvasMutation = (eventData: any, deltaX: number) => {
+    try {
+      if (!eventData || !eventData.rawToken) return;
+      const mutatedToken = topologicalMutator.resizeDuration(eventData.rawToken, deltaX, 100);
+      const nextCode = sourceCode.replace(eventData.rawToken, mutatedToken);
+      handleCodeEdit(nextCode);
+    } catch (e) {
+      console.warn('Topological mutation ignored (Out of bounds/Invalid Token):', e);
+    }
+  };
+
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden flex flex-col">
       <Group orientation="horizontal" className="flex-grow">
@@ -145,7 +158,7 @@ export default function SplitWorkspace() {
                 <Group orientation="horizontal" className="flex-grow">
                   <Panel defaultSize={80} minSize={30}>
                     <div className="h-full w-full relative">
-                      <WebGPUCanvas onSelect={setActiveSelection} events={compiledEvents} />
+                      <WebGPUCanvas onSelect={setActiveSelection} onMutation={handleCanvasMutation} events={compiledEvents} />
                     </div>
                   </Panel>
                   <Separator className="w-1 bg-slate-800 hover:bg-slate-700 transition-colors cursor-col-resize z-10" />
