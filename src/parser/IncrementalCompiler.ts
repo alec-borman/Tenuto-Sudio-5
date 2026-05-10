@@ -2,6 +2,28 @@ import { ASTSerializer, AtomicEvent } from './ASTSerializer';
 import { Lexer, TokenType } from './lexer';
 import { Parser, Score, TopLevel, Measure, Assignment, EventNode, Chord, Tuplet, MacroCall, VoiceEvent, Euclidean } from './Parser';
 
+function gcd(a: number, b: number): number {
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while (b !== 0) {
+    const temp = b;
+    b = a % b;
+    a = temp;
+  }
+  return a;
+}
+
+function addFractions(f1: { numerator: number, denominator: number }, f2: { numerator: number, denominator: number }) {
+  const num = f1.numerator * f2.denominator + f2.numerator * f1.denominator;
+  const den = f1.denominator * f2.denominator;
+  const divisor = gcd(num, den);
+  return { numerator: num / divisor, denominator: den / divisor };
+}
+
+function fractionGreaterThan(f1: { numerator: number, denominator: number }, f2: { numerator: number, denominator: number }) {
+  return (f1.numerator * f2.denominator) > (f2.numerator * f1.denominator);
+}
+
 export class IncrementalCompiler {
   private cachedTokens: string[] = [];
   private cachedEvents: any[] = [];
@@ -36,13 +58,13 @@ export class IncrementalCompiler {
       }
     }
 
-    let defaultFrac = 0.0;
+    let defaultFrac = { numerator: 0, denominator: 1 };
     
     for (const assignment of assignments) {
       const trackId = assignment.trackId || 'default';
       
-      const processVoice = (voice: any, startFrac: number): number => {
-         let localFrac = startFrac;
+      const processVoice = (voice: any, startFrac: { numerator: number, denominator: number }): { numerator: number, denominator: number } => {
+         let localFrac = { ...startFrac };
          for (const ev of voice.events) {
             if (ev instanceof EventNode || ev instanceof Tuplet || ev instanceof Euclidean) {
                try {
@@ -54,7 +76,7 @@ export class IncrementalCompiler {
                  if (cachedIndex !== -1) {
                     atomicRaw = this.cachedEvents[cachedIndex];
                     // Update temporal position dynamically on the cached item
-                    atomicRaw.startTime = this.floatToFraction(localFrac);
+                    atomicRaw.startTime = { ...localFrac };
                  } else {
                     const pitchLit = (ev as EventNode).pitchLit || 'r';
                     const durRaw = (ev as EventNode).duration ? ':' + (ev as EventNode).duration?.raw : ':4';
@@ -63,7 +85,7 @@ export class IncrementalCompiler {
                     atomicRaw.astNodeId = ev.astNodeId;
                     atomicRaw.rawToken = serializedTok;
                     atomicRaw.trackId = trackId;
-                    atomicRaw.startTime = this.floatToFraction(localFrac);
+                    atomicRaw.startTime = { ...localFrac };
                  }
                  
                  newCachedEvents.push(atomicRaw);
@@ -71,7 +93,7 @@ export class IncrementalCompiler {
                  
                  // If not a grace note, increment 
                  if (!atomicRaw.duration.isGrace) {
-                    localFrac += (atomicRaw.duration.numerator / atomicRaw.duration.denominator);
+                    localFrac = addFractions(localFrac, atomicRaw.duration);
                  }
                  
                  events.push(atomicRaw);
@@ -86,10 +108,10 @@ export class IncrementalCompiler {
       if (assignment.singleVoice) {
          defaultFrac = processVoice(assignment.singleVoice, defaultFrac);
       } else if (assignment.voiceGroup) {
-         let maxVoiceFrac = defaultFrac;
+         let maxVoiceFrac = { ...defaultFrac };
          for (const voice of assignment.voiceGroup.voices) {
             const endFrac = processVoice(voice, defaultFrac);
-            if (endFrac > maxVoiceFrac) maxVoiceFrac = endFrac;
+            if (fractionGreaterThan(endFrac, maxVoiceFrac)) maxVoiceFrac = endFrac;
          }
          defaultFrac = maxVoiceFrac; // Advance global cursor to the end of the voice group block
       }
@@ -98,22 +120,5 @@ export class IncrementalCompiler {
     this.cachedTokens = newCachedEvents.map(e => `${e.trackId}-${e.rawToken}`);
     this.cachedEvents = newCachedEvents;
     return events;
-  }
-
-  private floatToFraction(val: number): { numerator: number, denominator: number } {
-    if (val === 0) return { numerator: 0, denominator: 1 };
-    let bestNum = 0;
-    let bestDen = 1;
-    let minError = Infinity;
-    for (let den = 1; den <= 64; den++) {
-      const num = Math.round(val * den);
-      const error = Math.abs(val - (num / den));
-      if (error < minError) {
-        minError = error;
-        bestNum = num;
-        bestDen = den;
-      }
-    }
-    return { numerator: bestNum, denominator: bestDen };
   }
 }

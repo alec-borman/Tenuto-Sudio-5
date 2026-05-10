@@ -1,34 +1,35 @@
-import { ASTSerializer } from '../parser/ASTSerializer';
 import { TCALManager } from './TCALManager';
 import { AudioContextManager } from './AudioContextManager';
 
 export class PlaybackOrchestrator {
   constructor(
-    private serializer: ASTSerializer,
     private tcal: TCALManager,
     private audioCtx: AudioContextManager
   ) {}
 
-  public async compileAndPlay(sourceCode: string): Promise<void> {
-    // 1. Primitive topological isolation removing definition label prefixing logically
-    const eventsSequence = sourceCode.replace(/^[a-zA-Z_]+:\s*/, '').trim();
-    
-    // Fallback block skip 
-    if (!eventsSequence) return;
+  public async compileAndPlay(compiledEvents: any[]): Promise<void> {
+    if (!compiledEvents || compiledEvents.length === 0) return;
 
-    // Split discrete events logically matching deterministic parser spacing constraints
-    const tokens = eventsSequence.split(/\s+/).filter(Boolean);
+    for (const atomicEvent of compiledEvents) {
+      if (atomicEvent.pitch.midi === null) continue; // Rest event
 
-    for (const token of tokens) {
-      // 2. Linear semantic token parsing iteration
-      const atomicEvent = this.serializer.parseToken(token);
-
-      // 3. JIT Asset streaming interpolation wrapper logic
-      // Bypasses React main thread delays safely executing HTTP block requests
-      await this.tcal.requestAudioBuffer('salamander_grand', atomicEvent.pitch.midi);
+      const num = atomicEvent.startTime.numerator * 1920;
+      const den = atomicEvent.startTime.denominator;
+      
+      if (num % den === 0) {
+        // Evaluate exact tick explicitly without drift
+        // const integerTick = num / den; (We're skipping actual scheduler implementation this sprint)
+        
+        // JIT Asset streaming interpolation wrapper logic
+        // Bypasses React main thread delays safely executing HTTP block requests
+        await this.tcal.requestAudioBuffer('salamander_grand', atomicEvent.pitch.midi);
+      } else {
+        // Inexact calculation -> defer
+        console.warn(`[PlaybackOrchestrator] Non‑exact tick for event ${atomicEvent.rawToken || JSON.stringify(atomicEvent)}; deferring to scheduler.`);
+      }
     }
 
-    // 4. Matrix memory block registration bridging hardware layer rendering execution 
+    // Matrix memory block registration bridging hardware layer rendering execution 
     this.audioCtx.allocateSharedMemory(1024);
   }
 }

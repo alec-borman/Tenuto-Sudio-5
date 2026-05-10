@@ -30,7 +30,7 @@ export default function SplitWorkspace() {
   const audioManager = useMemo(() => new AudioContextManager(), []);
   const serializer = useMemo(() => new ASTSerializer(), []);
   const incrementalCompiler = useMemo(() => new IncrementalCompiler(serializer), [serializer]);
-  const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(serializer, new TCALManager(), audioManager), [audioManager, serializer]);
+  const playbackOrchestrator = useMemo(() => new PlaybackOrchestrator(new TCALManager(), audioManager), [audioManager]);
   const topologicalMutator = useMemo(() => new TopologicalMutator(), []);
 
   const [compiledEvents, setCompiledEvents] = useState<any[]>([]);
@@ -73,7 +73,7 @@ export default function SplitWorkspace() {
     setIsPlaying(nextPlaying);
     
     if (nextPlaying) {
-      await playbackOrchestrator.compileAndPlay(sourceCode);
+      await playbackOrchestrator.compileAndPlay(compiledEvents);
     }
   };
 
