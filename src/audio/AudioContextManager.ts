@@ -8,14 +8,19 @@ export class AudioContextManager {
     this.workletNode = new AudioWorkletNode(this.context, 'TenutoProcessor');
   }
 
-  public allocateSharedMemory(size: number): void {
-    if (!this.workletNode) {
-      throw new Error('AudioWorkletNode is not initialized.');
+  public get sampleRate(): number {
+    return this.context?.sampleRate || 48000;
+  }
+
+  public allocateSharedMemory(numEvents: number): SharedArrayBuffer {
+    const totalBytes = 8 + numEvents * 32; // 8 bytes for header alignment
+    const sharedBuffer = new SharedArrayBuffer(totalBytes);
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({
+        type: 'INIT_BUFFER',
+        buffer: sharedBuffer,
+      });
     }
-    const sharedBuffer = new SharedArrayBuffer(size);
-    this.workletNode.port.postMessage({
-      type: 'INIT_BUFFER',
-      buffer: sharedBuffer,
-    });
+    return sharedBuffer;
   }
 }

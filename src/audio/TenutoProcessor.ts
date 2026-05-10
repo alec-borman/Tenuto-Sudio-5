@@ -1,49 +1,67 @@
 // @ts-nocheck
 export class TenutoProcessor extends AudioWorkletProcessor {
   private sharedBuffer: SharedArrayBuffer | null = null;
-  private view: Float32Array | null = null;
+  private headerView: Uint32Array | null = null;
+  private eventsView: Float64Array | null = null;
   private phase: number = 0.0;
+  private readIndex: number = 0;
+  private currentSample: number = 0;
 
   constructor() {
     super();
     this.port.onmessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'INIT_BUFFER') {
         this.sharedBuffer = event.data.buffer;
-        this.view = new Float32Array(this.sharedBuffer);
+        this.headerView = new Uint32Array(this.sharedBuffer, 0, 1);
+        this.eventsView = new Float64Array(this.sharedBuffer, 8); // 8-byte alignment
+        
+        this.readIndex = 0;
+        this.currentSample = 0;
+        this.phase = 0.0;
       }
     };
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean {
     const output = outputs[0];
-    if (!output || !this.view) return true;
+    if (!output || !this.headerView || !this.eventsView) return true;
 
-    // Evaluate target frequency continuously referencing absolute shared state
-    const frequency = this.view[0] > 0 ? this.view[0] : 440.0;
-    
-    // Context properties fallback evaluation structurally tracking web scope bounds 
+    // Read the write index 
+    const numEvents = Atomics.load(this.headerView, 0);
     const rate = typeof sampleRate !== 'undefined' ? sampleRate : 48000;
-    const phaseIncrement = (2 * Math.PI * frequency) / rate;
 
-    // O(0) GC Allocation DSP execution utilizing Float32 buffer bounds
-    for (let channel = 0; channel < output.length; channel++) {
-      const channelArray = output[channel];
-      
-      let localPhase = this.phase;
-      
-      for (let i = 0; i < channelArray.length; i++) {
-        channelArray[i] = Math.sin(localPhase);
-        localPhase += phaseIncrement;
+    for (let i = 0; i < output[0].length; i++) {
+        let sampleVal = 0.0;
+        let activeFreq = 0.0;
         
-        if (localPhase >= 2 * Math.PI) {
-          localPhase -= 2 * Math.PI;
+        for (let e = this.readIndex; e < numEvents; e++) {
+            const startSample = this.eventsView[e * 4];
+            const durationSamples = this.eventsView[e * 4 + 1];
+            const frequency = this.eventsView[e * 4 + 2];
+            const velocity = this.eventsView[e * 4 + 3];
+
+            const endSample = startSample + durationSamples;
+
+            if (this.currentSample >= startSample && this.currentSample <= endSample) {
+                activeFreq = frequency;
+                sampleVal += Math.sin(this.phase) * velocity;
+            }
+            
+            if (e === this.readIndex && this.currentSample > endSample) {
+                this.readIndex++;
+            }
         }
-      }
-      
-      // Preserve tracking boundary consistently across channel iterations ensuring monophonic synchronization
-      if (channel === 0) {
-        this.phase = localPhase;
-      }
+        
+        if (activeFreq > 0) {
+            this.phase += (2 * Math.PI * activeFreq) / rate;
+            if (this.phase >= 2 * Math.PI) this.phase -= 2 * Math.PI;
+        }
+
+        for (let channel = 0; channel < output.length; channel++) {
+            output[channel][i] = sampleVal;
+        }
+
+        this.currentSample++;
     }
 
     return true; 
